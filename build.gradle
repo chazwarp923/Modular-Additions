@@ -1,0 +1,84 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven { url = "http://files.minecraftforge.net/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
+    }
+}
+
+repositories {
+    maven {
+        //JEI maven
+        url "http://dvs1.progwml6.com/files/maven"
+    }
+    maven { // Compat Layer
+            //name = "compatlayer"
+            url "http://maven.k-4u.nl"
+        }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+
+eclipse {
+    classpath {
+         containers.clear()
+         containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
+    }
+}
+
+version = "${minecraft_version}-${mod_version}-${System.getenv("BUILD_NUMBER") ?: 0}"
+group = mod_group
+archivesBaseName = mod_artifact_basename
+
+sourceCompatibility = targetCompatibility = "1.8" // Need this here so eclipse task generates correctly.
+compileJava {
+    sourceCompatibility = targetCompatibility = "1.8"
+}
+
+minecraft {
+    version = minecraft_version + "-" + forge_version
+    
+    if(file('../run').exists()) {
+        runDir = "../run"
+    }
+    else {
+        runDir = "run"
+    }
+    
+    //set version in code
+    replaceIn "Reference.java"
+    replace "@MOD_VERSION@", "${mod_version}.${System.getenv("BUILD_NUMBER") ?: 0}"
+    
+    mappings = mcp_mappings_version
+}
+
+dependencies {
+    // compile against the JEI API
+    deobfCompile "mezz.jei:jei_${minecraft_version}:${dep_jei_version}:api"
+    // at runtime, use the full JEI jar
+    runtime "mezz.jei:jei_${minecraft_version}:${dep_jei_version}"
+    
+    deobfCompile "com.github.mcjty:compatlayer:${minecraft_version}-${dep_compatlayer_version}"
+}
+
+processResources {
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+                
+        // replace version and mcversion
+        expand 'version':project.version, 'mcversion':project.minecraft.version
+    }
+        
+    // copy everything else except the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
